@@ -470,13 +470,13 @@
 <!-- ============================ ÉCRAN 2 : JEU ============================ -->
 <section id="ecran-jeu" class="ecran">
   <div class="barre-info">
-    <span class="bloc">🎁 <span id="score">0</span>/10</span>
+    <span class="bloc">🎁 <span id="score">0</span>/20</span>
     <span class="bloc">❤️ <span id="vies">3</span></span>
   </div>
   <div id="cadre-jeu">
     <canvas id="jeu"></canvas>
   </div>
-  <p class="consigne">Attrape 10 cadeaux 🎁 et évite les bombes 💣&nbsp;!<br>
+  <p class="consigne">Attrape 20 cadeaux 🎁 et évite les bombes 💣&nbsp;!<br>
      Flèches ⬅️ ➡️ au clavier, ou glisse ton doigt sur l'écran.</p>
 </section>
 
@@ -723,7 +723,7 @@ function boucleJeu(t) {
       } else {
         score++;
         bravoFlash();            // petit retour visuel local (pas de confettis plein écran)
-        if (score >= 10) { majInfos(); return finPartie(true); }
+        if (score >= 20) { majInfos(); return finPartie(true); }
       }
       majInfos();
       objets.splice(i, 1);
