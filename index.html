@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<!-- Mobile-first : la page sera surtout ouverte sur un téléphone -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Joyeux anniversaire Elise ! 🎉</title>
+
+<style>
+  /* ============================================================
+     PALETTE & RÉGLAGES GÉNÉRAUX
+     Ambiance festive, ensoleillée et colorée (pas de violet géné-
+     rique). On joue sur le corail, le turquoise et le jaune soleil.
+     ============================================================ */
+  :root {
+    --corail:    #ff5e6c;
+    --rose:      #ff8fa3;
+    --turquoise: #29c7b7;
+    --bleu-ciel: #4dd0e1;
+    --jaune:     #ffd23f;
+    --orange:    #ff9f1c;
+    --creme:     #fff8ec;
+    --texte:     #2b2b3a;
+    /* Police 100% système : aucune dépendance externe, fonctionne offline */
+    --police: "Trebuchet MS", "Segoe UI", system-ui, -apple-system, "Comic Sans MS", sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    font-family: var(--police);
+    color: var(--texte);
+    overflow: hidden;
+    /* Dégradé chaleureux turquoise → jaune (anti-violet) */
+    background: linear-gradient(160deg, #4dd0e1 0%, #29c7b7 40%, #ffd23f 100%);
+    background-attachment: fixed;
+    touch-action: none; /* évite le scroll/zoom intempestif pendant le jeu */
+  }
+
+  /* Chaque "écran" occupe tout l'espace. On bascule via la classe .actif */
+  .ecran {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+    animation: apparition 0.5s ease both;
+  }
+  .ecran.actif { display: flex; }
+
+  @keyframes apparition {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- Canvas de confettis : couvre toute la page, derrière le contenu ---------- */
+  #confettis {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* on peut cliquer à travers */
+    z-index: 5;
+  }
+
+  .ecran > * { position: relative; z-index: 10; }
+
+  /* ============================================================
+     ÉCRAN 1 — ACCUEIL
+     ============================================================ */
+  .gateau { font-size: clamp(64px, 22vw, 130px); animation: rebond 1.6s ease-in-out infinite; }
+  @keyframes rebond {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    50%      { transform: translateY(-16px) rotate(3deg); }
+  }
+
+  h1 {
+    font-size: clamp(30px, 9vw, 60px);
+    line-height: 1.1;
+    margin: 14px 0 6px;
+    color: #fff;
+    text-shadow: 0 3px 0 var(--corail), 0 6px 12px rgba(0,0,0,.25);
+    letter-spacing: .5px;
+  }
+
+  .age {
+    font-size: clamp(26px, 8vw, 48px);
+    font-weight: bold;
+    color: var(--texte);
+    background: var(--jaune);
+    padding: 6px 22px;
+    border-radius: 999px;
+    box-shadow: 0 6px 0 var(--orange);
+    margin-bottom: 26px;
+    display: inline-block;
+    transform: rotate(-2deg);
+  }
+
+  /* Bouton festif réutilisé sur plusieurs écrans */
+  .btn {
+    font-family: var(--police);
+    font-size: clamp(18px, 5.5vw, 26px);
+    font-weight: bold;
+    color: #fff;
+    background: var(--corail);
+    border: none;
+    padding: 18px 30px;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 7px 0 #d63a4a, 0 10px 18px rgba(0,0,0,.2);
+    transition: transform .08s ease, box-shadow .08s ease;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  .btn:active {
+    transform: translateY(5px);
+    box-shadow: 0 2px 0 #d63a4a, 0 4px 10px rgba(0,0,0,.2);
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.05); }
+  }
+
+  /* ============================================================
+     ÉCRAN 2 — JEU
+     ============================================================ */
+  #ecran-jeu { justify-content: flex-start; padding: 12px; }
+
+  .barre-info {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: clamp(18px, 5vw, 26px);
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0,0,0,.3);
+    margin-bottom: 8px;
+  }
+  .barre-info .bloc {
+    background: rgba(0,0,0,.18);
+    padding: 6px 14px;
+    border-radius: 999px;
+  }
+
+  /* Zone de jeu : ratio fixe, largeur adaptative */
+  #cadre-jeu {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    background: linear-gradient(180deg, #bdeefb 0%, #e8fbff 100%);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25), inset 0 0 0 4px #fff;
+    overflow: hidden;
+    flex: 1;
+    max-height: 70vh;
+  }
+  #jeu { display: block; width: 100%; height: 100%; }
+
+  .consigne {
+    margin-top: 10px;
+    color: #fff;
+    font-size: clamp(13px, 3.6vw, 16px);
+    text-shadow: 0 1px 3px rgba(0,0,0,.35);
+    max-width: 520px;
+  }
+
+  /* ============================================================
+     ÉCRAN 3 — RÉCOMPENSE / CHOIX DU CADEAU
+     ============================================================ */
+  #ecran-recompense h1 { margin-bottom: 8px; }
+  .sous-titre {
+    color: #fff;
+    font-size: clamp(18px, 5vw, 26px);
+    font-weight: bold;
+    margin-bottom: 24px;
+    text-shadow: 0 2px 5px rgba(0,0,0,.3);
+  }
+
+  .cartes {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+    max-width: 560px;
+  }
+  @media (min-width: 520px) {
+    .cartes { flex-direction: row; }
+  }
+
+  .carte {
+    flex: 1;
+    background: var(--creme);
+    border-radius: 22px;
+    padding: 26px 18px;
+    cursor: pointer;
+    box-shadow: 0 8px 0 rgba(0,0,0,.12), 0 12px 24px rgba(0,0,0,.18);
+    border: 4px solid transparent;
+    transition: transform .12s ease, border-color .12s ease;
+  }
+  .carte:active { transform: scale(.97); }
+  .carte:hover  { border-color: var(--jaune); }
+  .carte .emoji { font-size: clamp(48px, 14vw, 78px); display: block; }
+  .carte .label {
+    font-size: clamp(18px, 5vw, 24px);
+    font-weight: bold;
+    margin-top: 10px;
+    color: var(--texte);
+  }
+  .carte.cheval { background: linear-gradient(160deg, #ffe9c7, #ffd23f); }
+  .carte.chute  { background: linear-gradient(160deg, #d7f6ff, #4dd0e1); }
+
+  /* Message de confirmation final */
+  #confirmation {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    animation: apparition .5s ease both;
+  }
+  #confirmation.actif { display: flex; }
+  #message-final {
+    font-size: clamp(26px, 8vw, 46px);
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 3px 0 var(--corail), 0 6px 14px rgba(0,0,0,.25);
+    line-height: 1.2;
+    max-width: 600px;
+  }
+
+  /* Petit lien discret pour rejouer */
+  .rejouer {
+    margin-top: 8px;
+    background: none;
+    border: 2px solid rgba(255,255,255,.7);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-family: var(--police);
+    font-size: 16px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<!-- Canvas unique pour les confettis, partagé par tous les écrans -->
+<canvas id="confettis"></canvas>
+
+<!-- ============================ ÉCRAN 1 : ACCUEIL ============================ -->
+<section id="ecran-accueil" class="ecran actif">
+  <div class="gateau">🎂</div>
+  <h1>Joyeux anniversaire Elise&nbsp;!</h1>
+  <div class="age">11 ans 🎉</div>
+  <button class="btn" id="btn-jouer">🎮 Joue pour gagner ton cadeau</button>
+</section>
+
+<!-- ============================ ÉCRAN 2 : JEU ============================ -->
+<section id="ecran-jeu" class="ecran">
+  <div class="barre-info">
+    <span class="bloc">🎁 <span id="score">0</span>/10</span>
+    <span class="bloc">❤️ <span id="vies">3</span></span>
+  </div>
+  <div id="cadre-jeu">
+    <canvas id="jeu"></canvas>
+  </div>
+  <p class="consigne">Attrape 10 cadeaux 🎁 et évite les bombes 💣&nbsp;!<br>
+     Flèches ⬅️ ➡️ au clavier, ou glisse ton doigt sur l'écran.</p>
+</section>
+
+<!-- ====================== ÉCRAN 3 : RÉCOMPENSE / CHOIX ====================== -->
+<section id="ecran-recompense" class="ecran">
+  <!-- Bloc choix -->
+  <div id="bloc-choix">
+    <h1>Bravo Elise&nbsp;! 🏆</h1>
+    <p class="sous-titre">Choisis ton cadeau&nbsp;:</p>
+    <div class="cartes">
+      <div class="carte cheval" data-cadeau="cheval">
+        <span class="emoji">🐴</span>
+        <span class="label">Une après-midi à cheval</span>
+      </div>
+      <div class="carte chute" data-cadeau="chute">
+        <span class="emoji">🪂</span>
+        <span class="label">Une simulation de chute libre</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bloc confirmation (caché au départ) -->
+  <div id="confirmation">
+    <div class="gateau">🎉</div>
+    <p id="message-final"></p>
+    <button class="rejouer" id="btn-rejouer">↺ Rejouer</button>
+  </div>
+</section>
+
+<script>
+/* ================================================================
+   GESTION DES ÉCRANS
+   On affiche un seul écran à la fois en jouant sur la classe .actif
+   ================================================================ */
+const ecrans = {
+  accueil:    document.getElementById('ecran-accueil'),
+  jeu:        document.getElementById('ecran-jeu'),
+  recompense: document.getElementById('ecran-recompense'),
+};
+
+function afficherEcran(nom) {
+  Object.values(ecrans).forEach(e => e.classList.remove('actif'));
+  ecrans[nom].classList.add('actif');
+}
+
+/* ================================================================
+   CONFETTIS (canvas plein écran, boucle permanente)
+   Chaque confetti est un petit rectangle coloré qui tombe en
+   tournoyant. On peut booster temporairement leur nombre.
+   ================================================================ */
+const cvConf = document.getElementById('confettis');
+const ctxConf = cvConf.getContext('2d');
+let confettis = [];
+const COULEURS = ['#ff5e6c', '#ffd23f', '#29c7b7', '#4dd0e1', '#ff9f1c', '#ff8fa3', '#ffffff'];
+
+function dimensionnerConfettis() {
+  cvConf.width  = window.innerWidth;
+  cvConf.height = window.innerHeight;
+}
+window.addEventListener('resize', dimensionnerConfettis);
+dimensionnerConfettis();
+
+// Crée un confetti, soit en pluie normale (en haut), soit en explosion depuis un point
+function creerConfetti(explosion = false) {
+  return {
+    x: explosion ? cvConf.width / 2  : Math.random() * cvConf.width,
+    y: explosion ? cvConf.height / 2 : -20,
+    taille: 6 + Math.random() * 8,
+    couleur: COULEURS[(Math.random() * COULEURS.length) | 0],
+    vx: explosion ? (Math.random() - 0.5) * 14 : (Math.random() - 0.5) * 2,
+    vy: explosion ? (Math.random() - 0.5) * 14 : 1.5 + Math.random() * 2.5,
+    angle: Math.random() * Math.PI * 2,
+    vitesseAngle: (Math.random() - 0.5) * 0.3,
+  };
+}
+
+// Quantité de confettis "de fond" entretenue en permanence
+let densiteFond = 60;
+function entretenirFond() {
+  while (confettis.length < densiteFond) confettis.push(creerConfetti(false));
+}
+
+// Explosion ponctuelle (utilisée au choix du cadeau)
+function exploserConfettis(n = 160) {
+  for (let i = 0; i < n; i++) confettis.push(creerConfetti(true));
+}
+
+function animerConfettis() {
+  ctxConf.clearRect(0, 0, cvConf.width, cvConf.height);
+  for (let i = confettis.length - 1; i >= 0; i--) {
+    const c = confettis[i];
+    c.x += c.vx;
+    c.y += c.vy;
+    c.vy += 0.04;            // légère gravité
+    c.angle += c.vitesseAngle;
+
+    ctxConf.save();
+    ctxConf.translate(c.x, c.y);
+    ctxConf.rotate(c.angle);
+    ctxConf.fillStyle = c.couleur;
+    ctxConf.fillRect(-c.taille / 2, -c.taille / 2, c.taille, c.taille * 0.6);
+    ctxConf.restore();
+
+    // Recyclage : on retire ceux sortis de l'écran
+    if (c.y > cvConf.height + 30) confettis.splice(i, 1);
+  }
+  entretenirFond();
+  requestAnimationFrame(animerConfettis);
+}
+animerConfettis();
+
+/* ================================================================
+   MINI-JEU « ATTRAPE-CADEAUX »
+   - Un panier 🧺 se déplace en bas (clavier + tactile).
+   - Des cadeaux 🎁 et des bombes 💣 tombent du haut.
+   - 10 cadeaux attrapés = victoire ; 0 vie = on relance.
+   ================================================================ */
+const cvJeu = document.getElementById('jeu');
+const ctxJeu = cvJeu.getContext('2d');
+const cadreJeu = document.getElementById('cadre-jeu');
+
+let L = 0, H = 0;          // largeur / hauteur logiques du canvas
+let panier, objets, score, vies;
+let gauchePressee = false, droitePressee = false;
+let jeuEnCours = false;
+let dernierLancer = 0;
+let frameJeu = null;
+
+const elScore = document.getElementById('score');
+const elVies  = document.getElementById('vies');
+
+// Ajuste la résolution du canvas à la taille réelle du cadre (net sur écrans HD)
+function dimensionnerJeu() {
+  const r = cadreJeu.getBoundingClientRect();
+  L = r.width;
+  H = r.height;
+  const dpr = window.devicePixelRatio || 1;
+  cvJeu.width  = L * dpr;
+  cvJeu.height = H * dpr;
+  ctxJeu.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (panier) {
+    panier.largeur = Math.max(90, L * 0.26);   // panier large = jeu facile
+    panier.y = H - 70;
+    panier.x = Math.min(panier.x, L - panier.largeur);
+  }
+}
+window.addEventListener('resize', () => { if (jeuEnCours) dimensionnerJeu(); });
+
+function initJeu() {
+  dimensionnerJeu();
+  panier = {
+    largeur: Math.max(90, L * 0.26),
+    hauteur: 46,
+    x: L / 2 - 60,
+    y: H - 70,
+    vitesse: 8,
+  };
+  objets = [];
+  score = 0;
+  vies = 3;
+  dernierLancer = 0;
+  majInfos();
+}
+
+function majInfos() {
+  elScore.textContent = score;
+  elVies.textContent  = vies;
+}
+
+// Crée un objet qui tombe : 80% de cadeaux, 20% de bombes
+function lancerObjet() {
+  const estBombe = Math.random() < 0.2;
+  objets.push({
+    x: 20 + Math.random() * (L - 40),
+    y: -30,
+    taille: 38,
+    vitesse: 1.8 + Math.random() * 1.2,   // chute modérée → facile
+    bombe: estBombe,
+    emoji: estBombe ? '💣' : '🎁',
+  });
+}
+
+function boucleJeu(t) {
+  if (!jeuEnCours) return;
+  ctxJeu.clearRect(0, 0, L, H);
+
+  // --- Déplacement du panier (clavier) ---
+  if (gauchePressee) panier.x -= panier.vitesse;
+  if (droitePressee) panier.x += panier.vitesse;
+  panier.x = Math.max(0, Math.min(L - panier.largeur, panier.x));
+
+  // --- Apparition régulière d'objets (toutes ~0.9 s) ---
+  if (t - dernierLancer > 900) {
+    lancerObjet();
+    dernierLancer = t;
+  }
+
+  // --- Mise à jour + dessin des objets ---
+  ctxJeu.font = '34px serif';
+  ctxJeu.textAlign = 'center';
+  ctxJeu.textBaseline = 'middle';
+
+  for (let i = objets.length - 1; i >= 0; i--) {
+    const o = objets[i];
+    o.y += o.vitesse;
+    ctxJeu.fillText(o.emoji, o.x, o.y);
+
+    // Collision avec le haut du panier
+    const dansX = o.x > panier.x && o.x < panier.x + panier.largeur;
+    const dansY = o.y > panier.y - 10 && o.y < panier.y + panier.hauteur;
+    if (dansX && dansY) {
+      if (o.bombe) {
+        vies--;
+        flashRouge();
+        if (vies <= 0) { majInfos(); return finPartie(false); }
+      } else {
+        score++;
+        exploserConfettis(20);   // petit jet de confettis à chaque cadeau
+        if (score >= 10) { majInfos(); return finPartie(true); }
+      }
+      majInfos();
+      objets.splice(i, 1);
+      continue;
+    }
+
+    // Objet sorti par le bas → on le retire
+    if (o.y > H + 30) objets.splice(i, 1);
+  }
+
+  // --- Dessin du panier ---
+  dessinerPanier();
+
+  frameJeu = requestAnimationFrame(boucleJeu);
+}
+
+function dessinerPanier() {
+  const p = panier;
+  // Corps du panier
+  ctxJeu.fillStyle = '#a8651f';
+  ctxJeu.strokeStyle = '#7a4710';
+  ctxJeu.lineWidth = 4;
+  roundRect(ctxJeu, p.x, p.y, p.largeur, p.hauteur, 12);
+  ctxJeu.fill();
+  ctxJeu.stroke();
+  // Liseré clair
+  ctxJeu.fillStyle = '#c98a3e';
+  roundRect(ctxJeu, p.x + 6, p.y + 6, p.largeur - 12, 12, 6);
+  ctxJeu.fill();
+  // Emoji panier au centre pour le côté ludique
+  ctxJeu.font = '28px serif';
+  ctxJeu.fillText('🧺', p.x + p.largeur / 2, p.y + p.hauteur / 2 + 2);
+}
+
+// Petit utilitaire : rectangle à coins arrondis
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// Flash rouge bref quand une bombe est touchée
+function flashRouge() {
+  cadreJeu.style.transition = 'box-shadow .1s';
+  cadreJeu.style.boxShadow = '0 0 0 6px #ff5e6c, 0 10px 30px rgba(0,0,0,.25)';
+  setTimeout(() => {
+    cadreJeu.style.boxShadow = '0 10px 30px rgba(0,0,0,.25), inset 0 0 0 4px #fff';
+  }, 160);
+}
+
+function demarrerPartie() {
+  initJeu();
+  jeuEnCours = true;
+  afficherEcran('jeu');
+  cancelAnimationFrame(frameJeu);
+  frameJeu = requestAnimationFrame(boucleJeu);
+}
+
+function finPartie(victoire) {
+  jeuEnCours = false;
+  cancelAnimationFrame(frameJeu);
+  if (victoire) {
+    densiteFond = 120;          // on intensifie les confettis de fond
+    exploserConfettis(180);
+    afficherEcran('recompense');
+  } else {
+    // Plus de vies : petit message puis on relance le jeu
+    setTimeout(() => {
+      alert('Oups, plus de vies ! 💣 On recommence, tu vas y arriver 💪');
+      demarrerPartie();
+    }, 100);
+  }
+}
+
+/* -------------------- CONTRÔLES -------------------- */
+// Clavier
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft')  gauchePressee = true;
+  if (e.key === 'ArrowRight') droitePressee = true;
+});
+window.addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft')  gauchePressee = false;
+  if (e.key === 'ArrowRight') droitePressee = false;
+});
+
+// Tactile + souris : le panier suit le doigt / le curseur
+function deplacerVers(clientX) {
+  if (!jeuEnCours) return;
+  const r = cvJeu.getBoundingClientRect();
+  const x = clientX - r.left;
+  panier.x = Math.max(0, Math.min(L - panier.largeur, x - panier.largeur / 2));
+}
+cvJeu.addEventListener('touchmove', e => {
+  e.preventDefault();
+  deplacerVers(e.touches[0].clientX);
+}, { passive: false });
+cvJeu.addEventListener('touchstart', e => {
+  deplacerVers(e.touches[0].clientX);
+}, { passive: false });
+cvJeu.addEventListener('mousemove', e => deplacerVers(e.clientX));
+
+/* ================================================================
+   CHOIX DU CADEAU (écran 3)
+   ================================================================ */
+const messages = {
+  cheval: 'Génial, on part faire du cheval ! 🐴',
+  chute:  'Accroche-toi, ça va voler ! 🪂',
+};
+
+document.querySelectorAll('.carte').forEach(carte => {
+  carte.addEventListener('click', () => {
+    const choix = carte.dataset.cadeau;
+    // Confettis renforcés
+    densiteFond = 160;
+    exploserConfettis(260);
+    // Bascule choix → confirmation
+    document.getElementById('bloc-choix').style.display = 'none';
+    document.getElementById('message-final').textContent = messages[choix];
+    document.getElementById('confirmation').classList.add('actif');
+  });
+});
+
+/* ================================================================
+   BOUTONS DE NAVIGATION
+   ================================================================ */
+document.getElementById('btn-jouer').addEventListener('click', demarrerPartie);
+
+document.getElementById('btn-rejouer').addEventListener('click', () => {
+  // Réinitialise l'écran récompense et relance depuis l'accueil
+  densiteFond = 60;
+  document.getElementById('confirmation').classList.remove('actif');
+  document.getElementById('bloc-choix').style.display = 'block';
+  afficherEcran('accueil');
+});
+</script>
+</body>
+</html>
