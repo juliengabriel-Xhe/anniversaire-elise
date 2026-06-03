@@ -400,11 +400,14 @@ let frameJeu = null;
 const elScore = document.getElementById('score');
 const elVies  = document.getElementById('vies');
 
-// Ajuste la résolution du canvas à la taille réelle du cadre (net sur écrans HD)
+// Ajuste la résolution du canvas à la taille réelle du cadre (net sur écrans HD).
+// Renvoie false tant que le cadre n'a pas encore de dimensions (canvas non prêt).
 function dimensionnerJeu() {
-  const r = cadreJeu.getBoundingClientRect();
-  L = r.width;
-  H = r.height;
+  const w = cadreJeu.clientWidth;
+  const h = cadreJeu.clientHeight;
+  if (!w || !h) return false;                  // pas encore affiché / mesuré → on réessaiera
+  L = w;
+  H = h;
   const dpr = window.devicePixelRatio || 1;
   cvJeu.width  = L * dpr;
   cvJeu.height = H * dpr;
@@ -412,25 +415,30 @@ function dimensionnerJeu() {
   if (panier) {
     panier.largeur = Math.max(90, L * 0.26);   // panier large = jeu facile
     panier.y = H - 70;
-    panier.x = Math.min(panier.x, L - panier.largeur);
+    panier.x = Math.max(0, Math.min(panier.x, L - panier.largeur)); // garde le panier dans le cadre
   }
+  return true;
 }
 window.addEventListener('resize', () => { if (jeuEnCours) dimensionnerJeu(); });
 
 function initJeu() {
-  dimensionnerJeu();
-  panier = {
-    largeur: Math.max(90, L * 0.26),
-    hauteur: 46,
-    x: L / 2 - 60,
-    y: H - 70,
-    vitesse: 8,
-  };
+  L = 0; H = 0;                         // forcera le garde-fou si pas encore mesuré
+  panier = { largeur: 100, hauteur: 46, x: 0, y: 0, vitesse: 8 };
   objets = [];
   score = 0;
   vies = 3;
   dernierLancer = 0;
   majInfos();
+  centrerPanier();                      // place le panier dès qu'une taille est dispo
+}
+
+// Centre le panier en bas, une fois que le canvas a une taille valide
+function centrerPanier() {
+  if (dimensionnerJeu()) {
+    panier.largeur = Math.max(90, L * 0.26);
+    panier.x = L / 2 - panier.largeur / 2;
+    panier.y = H - 70;
+  }
 }
 
 function majInfos() {
@@ -453,6 +461,16 @@ function lancerObjet() {
 
 function boucleJeu(t) {
   if (!jeuEnCours) return;
+
+  // Garde-fou : tant que le canvas n'a pas de vraie taille, on ne fait RIEN
+  // (ni apparition d'objets, ni collisions) et on retente au prochain frame.
+  // Évite que des cadeaux/bombes apparaissent au point (0,0) et soient "attrapés".
+  if (!L || !H) {
+    centrerPanier();
+    frameJeu = requestAnimationFrame(boucleJeu);
+    return;
+  }
+
   ctxJeu.clearRect(0, 0, L, H);
 
   // --- Déplacement du panier (clavier) ---
@@ -560,7 +578,7 @@ function demarrerPartie() {
   // Sécurité : on re-dimensionne une fois la mise en page stabilisée
   // (utile sur mobile où la taille définitive arrive après l'affichage).
   requestAnimationFrame(() => {
-    dimensionnerJeu();
+    centrerPanier();
     frameJeu = requestAnimationFrame(boucleJeu);
   });
 }
