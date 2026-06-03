@@ -64,7 +64,7 @@
     width: 100%;
     height: 100%;
     pointer-events: none; /* on peut cliquer à travers */
-    z-index: 5;
+    z-index: 1;           /* en fond : derrière le contenu, devant le dégradé */
   }
 
   .ecran > * { position: relative; z-index: 10; }
@@ -486,7 +486,7 @@ function boucleJeu(t) {
         if (vies <= 0) { majInfos(); return finPartie(false); }
       } else {
         score++;
-        exploserConfettis(20);   // petit jet de confettis à chaque cadeau
+        bravoFlash();            // petit retour visuel local (pas de confettis plein écran)
         if (score >= 10) { majInfos(); return finPartie(true); }
       }
       majInfos();
@@ -533,6 +533,14 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+// Petit effet vert/rebond sur le score quand on attrape un cadeau
+function bravoFlash() {
+  const bloc = elScore.parentElement;
+  bloc.style.transition = 'transform .12s ease';
+  bloc.style.transform = 'scale(1.35)';
+  setTimeout(() => { bloc.style.transform = 'scale(1)'; }, 130);
+}
+
 // Flash rouge bref quand une bombe est touchée
 function flashRouge() {
   cadreJeu.style.transition = 'box-shadow .1s';
@@ -543,11 +551,18 @@ function flashRouge() {
 }
 
 function demarrerPartie() {
+  // IMPORTANT : on affiche l'écran AVANT de dimensionner le canvas,
+  // sinon le cadre est encore masqué (display:none) et mesure 0×0.
+  afficherEcran('jeu');
   initJeu();
   jeuEnCours = true;
-  afficherEcran('jeu');
   cancelAnimationFrame(frameJeu);
-  frameJeu = requestAnimationFrame(boucleJeu);
+  // Sécurité : on re-dimensionne une fois la mise en page stabilisée
+  // (utile sur mobile où la taille définitive arrive après l'affichage).
+  requestAnimationFrame(() => {
+    dimensionnerJeu();
+    frameJeu = requestAnimationFrame(boucleJeu);
+  });
 }
 
 function finPartie(victoire) {
