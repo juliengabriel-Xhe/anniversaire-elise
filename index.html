@@ -308,6 +308,70 @@
     line-height: 1.2;
   }
   .popup-ok { font-size: clamp(16px, 4.5vw, 20px); padding: 14px 24px; }
+
+  /* ============================================================
+     GYMNASTE + CHIEN qui traversent l'écran d'accueil
+     - .gymnaste : déplacement horizontal d'un bord à l'autre
+     - .gym-bond / .gym-chien-saut : petit rebond (course)
+     - .gym-roue / .gym-chien-flip : roue (rotation 360°) par moments
+     ============================================================ */
+  .gymnaste {
+    position: absolute;
+    bottom: 7%;
+    left: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    z-index: 12;
+    pointer-events: none;            /* laisse cliquer le bouton à travers */
+    animation: traverse 18s linear infinite;
+    will-change: transform;
+  }
+  /* Aller-retour : elle marche vers la droite, se retourne, revient */
+  @keyframes traverse {
+    0%   { transform: translateX(-140px) scaleX(1); }
+    48%  { transform: translateX(98vw)  scaleX(1); }
+    50%  { transform: translateX(98vw)  scaleX(-1); }
+    98%  { transform: translateX(-140px) scaleX(-1); }
+    100% { transform: translateX(-140px) scaleX(1); }
+  }
+
+  /* Ombre douce sous le duo */
+  .gym-ombre {
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 92px; height: 11px;
+    background: rgba(0,0,0,.18);
+    border-radius: 50%;
+    filter: blur(1px);
+  }
+
+  /* Rebond de course (gymnaste) */
+  .gym-bond { animation: gymBond .55s ease-in-out infinite; }
+  @keyframes gymBond {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-7px); }
+  }
+
+  /* Roue : reste droite, puis tourne sur 360° vers la fin du cycle */
+  .gym-roue { transform-origin: 50% 58%; animation: gymRoue 4.2s ease-in-out infinite; }
+  @keyframes gymRoue {
+    0%, 62%   { transform: rotate(0deg); }
+    88%, 100% { transform: rotate(360deg); }
+  }
+
+  /* Le chien : mêmes mouvements, légèrement décalés pour le côté rigolo */
+  .gym-chien { align-self: flex-end; margin-bottom: 2px; }
+  .gym-chien-saut { animation: gymBond .55s ease-in-out infinite; animation-delay: .12s; }
+  .gym-chien-flip { transform-origin: 50% 60%; animation: gymRoue 4.2s ease-in-out infinite; animation-delay: .22s; }
+
+  /* On respecte les utilisateurs qui préfèrent moins d'animations */
+  @media (prefers-reduced-motion: reduce) {
+    .gymnaste, .gym-bond, .gym-roue, .gym-chien-saut, .gym-chien-flip { animation: none; }
+    .gymnaste { left: 8%; }
+  }
 </style>
 </head>
 <body>
@@ -322,6 +386,86 @@
   <div class="age">11 ans 🎉</div>
   <button class="btn" id="btn-jouer">🎮 Joue pour gagner ton cadeau</button>
 </section>
+
+<!-- Duo « gymnaste + chien » GLOBAL : affiché sur l'accueil ET la page de choix
+     (masqué pendant le jeu). Dessin SVG inspiré d'Elise : cheveux blonds mi-longs,
+     lunettes rondes, haut rose, leggings foncés et baskets blanches. -->
+<div class="gymnaste" id="gymnaste" aria-hidden="true">
+    <div class="gym-ombre"></div>
+
+    <!-- Le chiot (golden retriever crème) qui fait la gym avec elle -->
+    <div class="gym-chien">
+      <div class="gym-chien-saut">
+       <div class="gym-chien-flip">
+        <svg viewBox="0 0 72 64" width="58" height="52" xmlns="http://www.w3.org/2000/svg">
+          <!-- queue -->
+          <path d="M9 32 Q1 26 5 17" stroke="#e6caa0" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <!-- pattes -->
+          <rect x="16" y="42" width="6" height="15" rx="3" fill="#e2c597"/>
+          <rect x="44" y="42" width="6" height="15" rx="3" fill="#e2c597"/>
+          <rect x="23" y="44" width="6" height="13" rx="3" fill="#f0dcae"/>
+          <rect x="38" y="44" width="6" height="13" rx="3" fill="#f0dcae"/>
+          <!-- corps -->
+          <ellipse cx="32" cy="36" rx="20" ry="12" fill="#f0dcae"/>
+          <!-- tête -->
+          <circle cx="52" cy="27" r="12" fill="#f0dcae"/>
+          <!-- museau -->
+          <ellipse cx="62" cy="30" rx="7" ry="5.5" fill="#f8edd2"/>
+          <!-- oreille tombante -->
+          <path d="M46 16 Q43 29 50 36 Q55 29 54 18 Z" fill="#e0bf90"/>
+          <!-- truffe -->
+          <circle cx="66" cy="29" r="2.4" fill="#3a2f2a"/>
+          <!-- oeil -->
+          <circle cx="54" cy="25" r="1.8" fill="#3a2f2a"/>
+          <!-- petit sourire -->
+          <path d="M60 33 Q63 36 66 33" stroke="#3a2f2a" stroke-width="1" fill="none" stroke-linecap="round"/>
+        </svg>
+       </div>
+      </div>
+    </div>
+
+    <div class="gym-bond">
+      <div class="gym-roue">
+        <svg viewBox="0 0 80 150" width="84" height="158" xmlns="http://www.w3.org/2000/svg">
+          <!-- cheveux arrière (mi-longs, blonds) -->
+          <path d="M24 30 Q17 60 25 90 L55 90 Q63 60 56 30 Z" fill="#d9b36a"/>
+          <!-- jambes (leggings foncés) -->
+          <path d="M34 92 L32 139 L39 139 L40 92 Z" fill="#2f3a56"/>
+          <path d="M46 92 L48 139 L41 139 L40 92 Z" fill="#2f3a56"/>
+          <!-- baskets blanches -->
+          <rect x="28" y="138" width="14" height="8" rx="3.5" fill="#ffffff" stroke="#cfd6dd" stroke-width="1"/>
+          <rect x="38" y="138" width="14" height="8" rx="3.5" fill="#ffffff" stroke="#cfd6dd" stroke-width="1"/>
+          <!-- petite jupe/short bleu marine -->
+          <path d="M30 86 Q40 82 50 86 L53 101 Q40 106 27 101 Z" fill="#2f3a56"/>
+          <!-- corps : haut rose -->
+          <path d="M31 59 Q40 55 49 59 L51 90 Q40 94 29 90 Z" fill="#ff5d8f"/>
+          <!-- bras levés en V (pose de gym) -->
+          <line x1="33" y1="62" x2="19" y2="42" stroke="#ff5d8f" stroke-width="7" stroke-linecap="round"/>
+          <line x1="47" y1="62" x2="61" y2="42" stroke="#ff5d8f" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="18" cy="41" r="4.2" fill="#f6d3b3"/>
+          <circle cx="62" cy="41" r="4.2" fill="#f6d3b3"/>
+          <!-- cou -->
+          <rect x="37" y="51" width="6" height="9" fill="#f6d3b3"/>
+          <!-- tête -->
+          <circle cx="40" cy="40" r="15" fill="#f7d7b8"/>
+          <!-- frange / cheveux avant -->
+          <path d="M25 38 Q26 23 40 22 Q54 23 55 38 Q49 30 40 30 Q31 30 25 38 Z" fill="#d9b36a"/>
+          <!-- lunettes rondes -->
+          <circle cx="34" cy="41" r="5" fill="#ffffff" fill-opacity=".30" stroke="#333" stroke-width="1.6"/>
+          <circle cx="46" cy="41" r="5" fill="#ffffff" fill-opacity=".30" stroke="#333" stroke-width="1.6"/>
+          <line x1="39" y1="41" x2="41" y2="41" stroke="#333" stroke-width="1.6"/>
+          <!-- yeux -->
+          <circle cx="34" cy="41" r="1.7" fill="#3a2f2a"/>
+          <circle cx="46" cy="41" r="1.7" fill="#3a2f2a"/>
+          <!-- joues roses -->
+          <circle cx="30" cy="46" r="2" fill="#ff9bb5" opacity=".6"/>
+          <circle cx="50" cy="46" r="2" fill="#ff9bb5" opacity=".6"/>
+          <!-- sourire -->
+          <path d="M35 47 Q40 51 45 47" fill="none" stroke="#c0506a" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
 
 <!-- ============================ ÉCRAN 2 : JEU ============================ -->
 <section id="ecran-jeu" class="ecran">
@@ -382,6 +526,10 @@ const ecrans = {
 function afficherEcran(nom) {
   Object.values(ecrans).forEach(e => e.classList.remove('actif'));
   ecrans[nom].classList.add('actif');
+  // Le duo gymnaste + chien se balade sur l'accueil et la page de choix,
+  // mais on le cache pendant le jeu pour ne pas gêner.
+  const duo = document.getElementById('gymnaste');
+  if (duo) duo.style.display = (nom === 'jeu') ? 'none' : 'flex';
 }
 
 /* ================================================================
