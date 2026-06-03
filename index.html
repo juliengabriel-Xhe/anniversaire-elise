@@ -214,27 +214,9 @@
   .carte.cheval { background: linear-gradient(160deg, #ffe9c7, #ffd23f); }
   .carte.chute  { background: linear-gradient(160deg, #d7f6ff, #4dd0e1); }
 
-  /* Message de confirmation final */
-  #confirmation {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    gap: 18px;
-    animation: apparition .5s ease both;
-  }
-  #confirmation.actif { display: flex; }
-  #message-final {
-    font-size: clamp(26px, 8vw, 46px);
-    font-weight: bold;
-    color: #fff;
-    text-shadow: 0 3px 0 var(--corail), 0 6px 14px rgba(0,0,0,.25);
-    line-height: 1.2;
-    max-width: 600px;
-  }
-
-  /* Petit lien discret pour rejouer */
+  /* Petit lien discret pour rejouer (sous les cartes) */
   .rejouer {
-    margin-top: 8px;
+    margin-top: 26px;
     background: none;
     border: 2px solid rgba(255,255,255,.7);
     color: #fff;
@@ -244,6 +226,88 @@
     font-size: 16px;
     cursor: pointer;
   }
+
+  /* ============================================================
+     POPUP DESCRIPTIF (s'affiche par-dessus l'écran récompense)
+     ============================================================ */
+  .popup-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;                 /* au-dessus de tout, même des confettis */
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(20, 30, 40, .55);   /* voile sombre pour faire ressortir le popup */
+    backdrop-filter: blur(3px);
+  }
+  .popup-overlay.actif { display: flex; animation: apparition .3s ease both; }
+
+  .popup-carte {
+    position: relative;
+    width: 100%;
+    max-width: 460px;
+    max-height: 88vh;
+    overflow-y: auto;
+    background: var(--creme);
+    border-radius: 26px;
+    padding: 30px 24px 26px;
+    text-align: center;
+    box-shadow: 0 18px 50px rgba(0,0,0,.4);
+    animation: popIn .35s cubic-bezier(.18,.89,.32,1.28) both;
+  }
+  @keyframes popIn {
+    from { transform: scale(.8) translateY(20px); opacity: 0; }
+    to   { transform: scale(1) translateY(0);     opacity: 1; }
+  }
+
+  .popup-fermer {
+    position: absolute;
+    top: 12px; right: 14px;
+    width: 38px; height: 38px;
+    border: none;
+    border-radius: 50%;
+    background: var(--corail);
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #d63a4a;
+    line-height: 1;
+  }
+  .popup-fermer:active { transform: translateY(2px); box-shadow: 0 1px 0 #d63a4a; }
+
+  .popup-emoji { font-size: clamp(56px, 18vw, 84px); line-height: 1; }
+  #popup-titre {
+    font-size: clamp(22px, 6vw, 30px);
+    color: var(--texte);
+    margin: 6px 0 4px;
+    line-height: 1.15;
+  }
+  .popup-lieu {
+    display: inline-block;
+    background: var(--jaune);
+    color: var(--texte);
+    font-weight: bold;
+    font-size: clamp(14px, 4vw, 17px);
+    padding: 5px 14px;
+    border-radius: 999px;
+    margin-bottom: 14px;
+  }
+  .popup-desc {
+    font-size: clamp(15px, 4.2vw, 18px);
+    line-height: 1.5;
+    color: #444;
+    margin-bottom: 16px;
+  }
+  .popup-final {
+    font-size: clamp(18px, 5vw, 24px);
+    font-weight: bold;
+    color: var(--corail);
+    margin-bottom: 20px;
+    line-height: 1.2;
+  }
+  .popup-ok { font-size: clamp(16px, 4.5vw, 20px); padding: 14px 24px; }
 </style>
 </head>
 <body>
@@ -274,7 +338,6 @@
 
 <!-- ====================== ÉCRAN 3 : RÉCOMPENSE / CHOIX ====================== -->
 <section id="ecran-recompense" class="ecran">
-  <!-- Bloc choix -->
   <div id="bloc-choix">
     <h1>Bravo Elise&nbsp;! 🏆</h1>
     <p class="sous-titre">Choisis ton cadeau&nbsp;:</p>
@@ -288,15 +351,22 @@
         <span class="label">Une simulation de chute libre</span>
       </div>
     </div>
-  </div>
-
-  <!-- Bloc confirmation (caché au départ) -->
-  <div id="confirmation">
-    <div class="gateau">🎉</div>
-    <p id="message-final"></p>
     <button class="rejouer" id="btn-rejouer">↺ Rejouer</button>
   </div>
 </section>
+
+<!-- ============== POPUP DESCRIPTIF (par-dessus l'écran récompense) ============== -->
+<div id="popup" class="popup-overlay">
+  <div class="popup-carte" role="dialog" aria-modal="true">
+    <button class="popup-fermer" id="popup-fermer" aria-label="Fermer">✕</button>
+    <div class="popup-emoji" id="popup-emoji"></div>
+    <h2 id="popup-titre"></h2>
+    <p class="popup-lieu" id="popup-lieu"></p>
+    <p class="popup-desc" id="popup-desc"></p>
+    <p class="popup-final" id="popup-final"></p>
+    <button class="btn popup-ok" id="popup-ok">↩︎ Revenir au choix</button>
+  </div>
+</div>
 
 <script>
 /* ================================================================
@@ -627,25 +697,62 @@ cvJeu.addEventListener('touchstart', e => {
 cvJeu.addEventListener('mousemove', e => deplacerVers(e.clientX));
 
 /* ================================================================
-   CHOIX DU CADEAU (écran 3)
+   CHOIX DU CADEAU (écran 3) + POPUP DESCRIPTIF
+   Au clic sur une carte : salve de confettis renforcée + ouverture
+   d'un popup qui explique l'activité (lieu réel + description).
+   On peut le refermer pour revenir au choix.
    ================================================================ */
-const messages = {
-  cheval: 'Génial, on part faire du cheval ! 🐴',
-  chute:  'Accroche-toi, ça va voler ! 🪂',
+const cadeaux = {
+  cheval: {
+    emoji: '🐴',
+    titre: 'Une après-midi à cheval',
+    lieu:  '🏞️ Équilibres — Stoumont (Ardennes)',
+    desc:  "Tu pars en balade à cheval en pleine nature, dans les superbes paysages " +
+           "des Ardennes à Stoumont. Les chevaux d'Équilibres vivent en liberté, en troupeau, " +
+           "et sont adaptés à tous les niveaux — débutants bienvenus ! Une guide passionnée " +
+           "t'accompagne pendant toute la promenade. 🌲🐎",
+    final: 'Génial, on part faire du cheval ! 🐴',
+  },
+  chute: {
+    emoji: '🪂',
+    titre: 'Une simulation de chute libre',
+    lieu:  '✈️ FLYIN — Liège Airport',
+    desc:  "Direction l'une des plus grandes souffleries d'Europe ! Tu voles pour de vrai, " +
+           "portée par une colonne d'air qui souffle jusqu'à 300 km/h : la même sensation " +
+           "qu'un saut en parachute depuis 4000 m, mais en toute sécurité, juste au-dessus du sol. " +
+           "Des moniteurs pros restent avec toi tout le temps. 🚀",
+    final: 'Accroche-toi, ça va voler ! 🪂',
+  },
 };
 
+const popup = document.getElementById('popup');
+
+function ouvrirPopup(choix) {
+  const c = cadeaux[choix];
+  document.getElementById('popup-emoji').textContent = c.emoji;
+  document.getElementById('popup-titre').textContent = c.titre;
+  document.getElementById('popup-lieu').textContent  = c.lieu;
+  document.getElementById('popup-desc').textContent  = c.desc;
+  document.getElementById('popup-final').textContent = c.final;
+  popup.classList.add('actif');
+  // Confettis de fête renforcés
+  densiteFond = 160;
+  exploserConfettis(260);
+}
+
+function fermerPopup() {
+  popup.classList.remove('actif');
+  densiteFond = 120;   // on calme un peu les confettis, on reste sur l'écran de choix
+}
+
 document.querySelectorAll('.carte').forEach(carte => {
-  carte.addEventListener('click', () => {
-    const choix = carte.dataset.cadeau;
-    // Confettis renforcés
-    densiteFond = 160;
-    exploserConfettis(260);
-    // Bascule choix → confirmation
-    document.getElementById('bloc-choix').style.display = 'none';
-    document.getElementById('message-final').textContent = messages[choix];
-    document.getElementById('confirmation').classList.add('actif');
-  });
+  carte.addEventListener('click', () => ouvrirPopup(carte.dataset.cadeau));
 });
+
+// Fermeture : bouton ✕, bouton "Revenir au choix", ou clic sur le voile
+document.getElementById('popup-fermer').addEventListener('click', fermerPopup);
+document.getElementById('popup-ok').addEventListener('click', fermerPopup);
+popup.addEventListener('click', e => { if (e.target === popup) fermerPopup(); });
 
 /* ================================================================
    BOUTONS DE NAVIGATION
@@ -653,10 +760,9 @@ document.querySelectorAll('.carte').forEach(carte => {
 document.getElementById('btn-jouer').addEventListener('click', demarrerPartie);
 
 document.getElementById('btn-rejouer').addEventListener('click', () => {
-  // Réinitialise l'écran récompense et relance depuis l'accueil
+  // Relance depuis l'accueil
   densiteFond = 60;
-  document.getElementById('confirmation').classList.remove('actif');
-  document.getElementById('bloc-choix').style.display = 'block';
+  fermerPopup();
   afficherEcran('accueil');
 });
 </script>
